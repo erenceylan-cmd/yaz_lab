@@ -1,5 +1,8 @@
 using UnityEngine;
 
+/// <summary>
+/// Oyuncu hareketi (WASD / ok tuşları). Diyalog sırasında bileşen kapatılınca karakter durur.
+/// </summary>
 [RequireComponent(typeof(Rigidbody2D))]
 public class PlayerController : MonoBehaviour
 {
@@ -19,5 +22,11 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         _rb.linearVelocity = _input * moveSpeed;
+    }
+
+    private void OnDisable()
+    {
+        _input = Vector2.zero;
+        if (_rb != null) _rb.linearVelocity = Vector2.zero; // kayarak gitmesin
     }
 }
