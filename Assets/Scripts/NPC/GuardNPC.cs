@@ -19,7 +19,7 @@ public class GuardNPC : MonoBehaviour
     [Header("Bağlantılar")]
     [SerializeField] private Door guardedDoor;
     [SerializeField] private DialogueUI dialogueView;
-    [Tooltip("Konuşurken kapatılacak bileşenler (PlayerController, CompanionCommandInput).")]
+    [Tooltip("Konuşurken kapatılacak bileşenler. Boş bırakılırsa PlayerController ve CompanionCommandInput otomatik bulunur.")]
     [SerializeField] private Behaviour[] disableWhileTalking;
 
     [Header("Etkileşim")]
@@ -38,6 +38,15 @@ public class GuardNPC : MonoBehaviour
         _client = new OllamaClient(ollama);
         _dialogue = new NPCDialogueController(_client, new NPCResponseParser(), persona);
         _view = dialogueView;
+
+        if (disableWhileTalking == null || disableWhileTalking.Length == 0)
+        {
+            disableWhileTalking = new Behaviour[]
+            {
+                FindFirstObjectByType<PlayerController>(),
+                FindFirstObjectByType<CompanionCommandInput>()
+            };
+        }
     }
 
     private async void Start()
@@ -58,6 +67,18 @@ public class GuardNPC : MonoBehaviour
         _view.SetServerStatus(available
             ? $"LLM: {ollama.model} hazır"
             : $"LLM: bağlantı yok ({ollama.model}) — Ollama'yı başlatın");
+    }
+
+    /// <summary>Inspector'da bileşenin ⋮ menüsünden: kişiliği koddaki güncel varsayılana döndürür.</summary>
+    [ContextMenu("Varsayılan kişiliği yükle")]
+    private void LoadDefaultPersona()
+    {
+        persona = new NPCPersona();
+        ollama.temperature = new OllamaConfig().temperature;
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.SetDirty(this);
+#endif
+        Debug.Log("[GuardNPC] Varsayılan kişilik ve sıcaklık yüklendi.");
     }
 
     private void Update()

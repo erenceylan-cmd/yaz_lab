@@ -11,7 +11,7 @@ public class OllamaConfig
     [Tooltip("Tek bir yanıt için en fazla bekleme süresi (sn). İlk istekte model belleğe yüklendiği için daha uzun sürebilir.")]
     public float timeoutSeconds = 60f;
 
-    [Range(0f, 1.5f)] public float temperature = 0.7f;
+    [Range(0f, 1.5f)] public float temperature = 0.4f;
 
     [Tooltip("Yanıttaki en fazla token sayısı.")]
     public int maxTokens = 256;
