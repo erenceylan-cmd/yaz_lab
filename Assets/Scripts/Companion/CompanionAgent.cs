@@ -20,6 +20,8 @@ public class CompanionAgent : MonoBehaviour
     [SerializeField] private float arriveThreshold = 0.15f;
     [SerializeField] private float interactDuration = 0.6f;
     [SerializeField] private float stuckTimeout = 2f;
+    [Tooltip("Yol kapalıyken (örn. kapı kapalı) en fazla kaç saniye beklenir.")]
+    [SerializeField] private float waitForPathTimeout = 20f;
 
     public NavMeshAgent Agent { get; private set; }
     public RaycastSensor Sensor { get; private set; }
@@ -31,12 +33,14 @@ public class CompanionAgent : MonoBehaviour
     public float FollowStopDistance => followStopDistance;
     public float InteractDuration => interactDuration;
     public float StuckTimeout => stuckTimeout;
+    public float WaitForPathTimeout => waitForPathTimeout;
 
     // Durumlar bir kez oluşturulur ve tekrar kullanılır.
     public IdleState Idle { get; private set; }
     public FollowState Follow { get; private set; }
     public GoToTargetState GoToTarget { get; private set; }
     public InteractState Interact { get; private set; }
+    public WaitForPathState WaitForPath { get; private set; }
 
     private void Awake()
     {
@@ -54,6 +58,7 @@ public class CompanionAgent : MonoBehaviour
         Follow = new FollowState(this);
         GoToTarget = new GoToTargetState(this);
         Interact = new InteractState(this);
+        WaitForPath = new WaitForPathState(this);
     }
 
     private void Start()
@@ -82,12 +87,14 @@ public class CompanionAgent : MonoBehaviour
     {
         if (target == null || !target.CanInteract) return false;
 
-        // Zaten bir hedefe gidiyorsa, yeni hedef için yolu baştan planlasın.
-        if (StateMachine.Current == GoToTarget) StateMachine.ChangeState(Idle);
+        // Zaten bir hedefe gidiyorsa / bekliyorsa, yeni hedef için yolu baştan planlasın.
+        if (StateMachine.Current == GoToTarget || StateMachine.Current == WaitForPath)
+            StateMachine.ChangeState(Idle);
 
         CurrentTarget = target;
         StateMachine.ChangeState(GoToTarget);
-        return StateMachine.Current == GoToTarget; // yol bulunamazsa Follow'a düşmüş olur
+        // Yol kapalıysa WaitForPath'te bekler; o da kabul edilmiş bir görevdir.
+        return StateMachine.Current == GoToTarget || StateMachine.Current == WaitForPath;
     }
 
     public void CommandFollow()
@@ -113,6 +120,23 @@ public class CompanionAgent : MonoBehaviour
     {
         if (Agent.pathPending) return false;
         return Vector2.Distance(transform.position, Agent.destination) <= Agent.stoppingDistance + arriveThreshold;
+    }
+
+    /// <summary>
+    /// Mevcut hedefe (CurrentTarget) TAM bir NavMesh yolu var mı? Ajanın areaMask'i dikkate alınır,
+    /// yani kapalı kapıların alanları yol hesabına girmez.
+    /// </summary>
+    public bool TryGetPathToTarget(out NavMeshPath path)
+    {
+        path = null;
+        if (CurrentTarget == null || !Agent.isOnNavMesh) return false;
+
+        Vector3 point = CurrentTarget.InteractionPoint.position;
+        // Hedef nokta NavMesh'in biraz dışında olabilir (duvar dibi): en yakın yürünebilir noktayı bul.
+        if (!NavMesh.SamplePosition(point, out NavMeshHit hit, 1f, NavMesh.AllAreas)) return false;
+
+        path = new NavMeshPath();
+        return Agent.CalculatePath(hit.position, path) && path.status == NavMeshPathStatus.PathComplete;
     }
 
     public float DistanceToPlayer() => Vector2.Distance(transform.position, player.position);

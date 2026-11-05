@@ -3,8 +3,9 @@ using UnityEngine.AI;
 
 /// <summary>
 /// Hedefe gitme: NavMesh ile etkileşim noktasına tam (complete) bir yol hesaplar ve izler.
-/// - Yol yoksa: uyarı verir, Follow'a döner (oyun çökmez).
-/// - Takılırsa: Raycast sensörü engel görüyorsa yolu yeniden hesaplar; sınırlı deneme.
+/// - Yol kapalıysa (örn. kapı kapalı): WaitForPath durumuna geçer.
+/// - Yol sırasında kapanırsa (yol "partial" olursa): WaitForPath durumuna geçer.
+/// - Takılırsa: Raycast sensörü ile sebebi teşhis eder, yolu yeniden hesaplar; sınırlı deneme.
 /// - Varınca: Interact durumuna geçer.
 /// </summary>
 public class GoToTargetState : CompanionStateBase
@@ -23,8 +24,16 @@ public class GoToTargetState : CompanionStateBase
         _stuckTimer = 0f;
         _repathAttempts = 0;
 
-        if (!TryPlanPath())
-            Abort("Hedefe giden geçerli bir yol bulunamadı.");
+        if (Companion.CurrentTarget == null)
+        {
+            Abort("Hedef yok.");
+            return;
+        }
+
+        if (Companion.TryGetPathToTarget(out NavMeshPath path))
+            Companion.Agent.SetPath(path);
+        else
+            Companion.StateMachine.ChangeState(Companion.WaitForPath);
     }
 
     public override void Tick()
@@ -36,6 +45,15 @@ public class GoToTargetState : CompanionStateBase
             return;
         }
 
+        NavMeshAgent agent = Companion.Agent;
+
+        // Yol yürürken kapandıysa (kapı kapandı): tam yol yok, bekle.
+        if (!agent.pathPending && agent.pathStatus != NavMeshPathStatus.PathComplete)
+        {
+            Companion.StateMachine.ChangeState(Companion.WaitForPath);
+            return;
+        }
+
         if (Companion.HasArrived())
         {
             Companion.StateMachine.ChangeState(Companion.Interact);
@@ -43,8 +61,8 @@ public class GoToTargetState : CompanionStateBase
         }
 
         // Takılma tespiti: yol hazır ama ajan neredeyse hiç hareket etmiyor.
-        bool barelyMoving = Companion.Agent.velocity.sqrMagnitude < 0.01f;
-        _stuckTimer = (!Companion.Agent.pathPending && barelyMoving) ? _stuckTimer + Time.deltaTime : 0f;
+        bool barelyMoving = agent.velocity.sqrMagnitude < 0.01f;
+        _stuckTimer = (!agent.pathPending && barelyMoving) ? _stuckTimer + Time.deltaTime : 0f;
 
         if (_stuckTimer >= Companion.StuckTimeout)
         {
@@ -54,27 +72,13 @@ public class GoToTargetState : CompanionStateBase
             string reason = Companion.Sensor.ObstacleAhead ? "önde engel var" : "hareket yok";
             Debug.LogWarning($"[Companion] Takıldı ({reason}). Yol yeniden hesaplanıyor ({_repathAttempts}/{MaxRepathAttempts}).");
 
-            if (_repathAttempts > MaxRepathAttempts || !TryPlanPath())
+            if (_repathAttempts > MaxRepathAttempts)
                 Abort("Takılma çözülemedi.");
+            else if (Companion.TryGetPathToTarget(out NavMeshPath path))
+                agent.SetPath(path);
+            else
+                Companion.StateMachine.ChangeState(Companion.WaitForPath);
         }
-    }
-
-    private bool TryPlanPath()
-    {
-        Vector3 point = Companion.CurrentTarget.InteractionPoint.position;
-
-        // Hedef nokta NavMesh'in biraz dışında olabilir (duvar dibi): en yakın yürünebilir noktayı bul.
-        if (!NavMesh.SamplePosition(point, out NavMeshHit hit, 1f, NavMesh.AllAreas))
-            return false;
-
-        var path = new NavMeshPath();
-        point = hit.position;
-
-        if (!Companion.Agent.CalculatePath(point, path) || path.status != NavMeshPathStatus.PathComplete)
-            return false;
-
-        Companion.Agent.SetPath(path);
-        return true;
     }
 
     private void Abort(string reason)
