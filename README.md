@@ -2,7 +2,7 @@
 
 **Ders:** Yazılım Geliştirme Laboratuvarı-I — Proje 1
 **Kurum:** Kocaeli Üniversitesi, Teknoloji Fakültesi, Bilişim Sistemleri Mühendisliği
-**Ekip:**  Grup:23 No:231307090 ad:Eren Ceylan
+**Ekip:** No:231307090 ad:Eren Ceylan
 **Tarih:** Kasım 2026
 **Motor / Dil:** Unity 6.3 LTS (6000.3.26f1), C# — 2D Top-Down
 **Yerel LLM:** Ollama + `gemma2:9b`
@@ -58,8 +58,8 @@ flowchart LR
 
 **Kontroller:** `WASD` hareket (plakanın üstünde durarak tünel kapısını açık tutun) · `E` companion'ı şaltere gönder · `F` companion'ı takibe çağır · `T` bekçiyle konuş · `Enter` mesaj gönder · `Esc` konuşmayı kapat · `F9` companion testini çalıştır · `R` (oyun sonunda) yeniden başlat
 
-> _Ekran görüntüsü: genel harita_
-> `![Harita](Docs/Screenshots/harita.png)`
+![Harita](Docs/Screenshots/harita.png)
+*Oyunun genel görünümü: hücre (sol üst), tünel ve mekanizma odası (sol alt), avlu (orta), çıkış (sağ).*
 
 ---
 
@@ -138,11 +138,11 @@ flowchart TD
 
 Scene görünümünde ışınlar **yeşil (boş) / kırmızı (engel)** olarak çizilir.
 
-> _Ekran görüntüsü: companion tünelde, ışınlar ve durum etiketi görünür_
-> `![Companion tünelde](Docs/Screenshots/companion_tunel.png)`
+![Companion tünelde](Docs/Screenshots/companion_tunel.png)
+*Companion zikzak tünelden şaltere giderken; başında mevcut durum (`GoToTarget`) görünmektedir.*
 
-> _Ekran görüntüsü: NavMesh (Scene görünümü, mavi alan)_
-> `![NavMesh](Docs/Screenshots/navmesh.png)`
+![NavMesh](Docs/Screenshots/navmesh.png)
+*NavMesh (Scene görünümü): mavi alanlar yürünebilir bölgelerdir; 1 kare genişliğindeki tünelden geçen ince şerit companion'ın kullanabildiği yoldur.*
 
 ---
 
@@ -279,8 +279,8 @@ sequenceDiagram
 - `NPCDialogueController.IsBusy` ile aynı anda ikinci istek gönderilmesi engellenir.
 - Sahne kapanırsa `CancellationToken` ile istek iptal edilir; `await` sonrası `this == null` kontrolüyle yok edilmiş objeye erişilmez.
 
-> _Ekran görüntüsü: "Düşünüyor..." göstergesi_
-> `![Düşünüyor](Docs/Screenshots/dusunuyor.png)`
+![Düşünüyor](Docs/Screenshots/dusunuyor.png)
+*Model yanıt üretirken gösterilen "Garrick düşünüyor..." göstergesi; oyun bu sırada akmaya devam eder.*
 
 ---
 
@@ -320,11 +320,11 @@ flowchart TD
     E1 & E2 & E3 & E4 & E5 --> U[Panelde anlaşılır uyarı<br/>Oyun çalışmaya devam eder]
 ```
 
-> _Ekran görüntüsü: Ollama kapalıyken açılış durumu_
-> `![Bağlantı yok](Docs/Screenshots/hata_baglanti_yok.png)`
+![Bağlantı yok](Docs/Screenshots/hata_baglanti_yok.png)
+*Ollama kapalıyken oyun açılışı: sol üstte "LLM: bağlantı yok" uyarısı, oyun normal çalışır.*
 
-> _Ekran görüntüsü: Ollama kapalıyken mesaj gönderme_
-> `![Sunucuya ulaşılamıyor](Docs/Screenshots/hata_mesaj.png)`
+![Sunucuya ulaşılamıyor](Docs/Screenshots/hata_mesaj.png)
+*Ollama kapalıyken mesaj gönderildiğinde: oyun çökmez, oyuncuya anlaşılır bir uyarı gösterilir.*
 
 ---
 
@@ -385,7 +385,27 @@ Model: `gemma2:9b`, sıcaklık 0.4. Her senaryo yeni bir oyun oturumunda (boş k
 
 **Değerlendirme:** Beş senaryonun hepsinde kapı kararı beklenen yönde sonuçlandı: ikna ve parola senaryolarında kapı açıldı; kızdıran, alakasız ve injection senaryolarında kapı kapalı kaldı. Hiçbir denemede söz ile karar çelişmedi ve yanıtlar akıcı Türkçeydi. Gözlenen sapmalar: (1) parola ilk denemede tanınmadı, ikinci denemede kabul edildi; (2) alakasız konuşmaya beklenenden sert (`angry`) tepki verildi; (3) injection'ın tekrarında model rolünden hafifçe kaydı ama kapıyı açmadı.
 
-> Ekran görüntüleri: `Docs/Screenshots/diyalog_1_ikna.png` … `diyalog_5_injection.png`
+#### Diyalog ekran görüntüleri
+
+**1. İkna eden**
+
+![1. İkna eden](Docs/Screenshots/diyalog_1_ikna.png)
+
+**2. Kızdıran**
+
+![2. Kızdıran](Docs/Screenshots/diyalog_2_kizdiran.png)
+
+**3. Alakasız**
+
+![3. Alakasız](Docs/Screenshots/diyalog_3_alakasiz.png)
+
+**4. Parola**
+
+![4. Parola](Docs/Screenshots/diyalog_4_parola.png)
+
+**5. Prompt injection**
+
+![5. Prompt injection](Docs/Screenshots/diyalog_5_injection.png)
 
 ### 5.3 Prompt ve model iterasyonları
 NPC davranışı test edilerek adım adım iyileştirilmiştir. Her adımda gözlenen sorun ve yapılan değişiklik:
@@ -415,7 +435,6 @@ NPC davranışı test edilerek adım adım iyileştirilmiştir. Her adımda göz
 
 **Değerlendirme:** _(Model kurallara ne kadar uydu? Beklenmeyen davranış oldu mu? Örn. "Parola ve ikna senaryolarında kapı açıldı, kızdıran ve injection senaryolarında açılmadı. İlk istek modelin belleğe yüklenmesi nedeniyle ~X sn, sonrakiler ~Y sn sürdü.")_
 
-> _Ekran görüntüleri: her senaryo için diyalog paneli_
 
 ---
 
