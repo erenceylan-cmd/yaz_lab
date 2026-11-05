@@ -2,7 +2,7 @@
 
 **Ders:** Yazılım Geliştirme Laboratuvarı-I — Proje 1
 **Kurum:** Kocaeli Üniversitesi, Teknoloji Fakültesi, Bilişim Sistemleri Mühendisliği
-**Ekip:** No:231307090 ad:Eren Ceylan
+**Ekip:**  Grup:23 No:231307090 ad:Eren Ceylan
 **Tarih:** Kasım 2026
 **Motor / Dil:** Unity 6.3 LTS (6000.3.26f1), C# — 2D Top-Down
 **Yerel LLM:** Ollama + `gemma2:9b`
