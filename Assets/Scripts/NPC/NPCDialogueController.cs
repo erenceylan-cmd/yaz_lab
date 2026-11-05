@@ -13,7 +13,7 @@ public class NPCDialogueController
     private const int MaxParseRetries = 1;
     private const string RetryInstruction =
         "Önceki çıktın geçerli değildi. SADECE şu şemadaki JSON nesnesini döndür: " +
-        "{\"reply\": string, \"door_open\": boolean, \"mood\": \"neutral\"|\"friendly\"|\"suspicious\"|\"angry\"}";
+        "{\"reply\": string, \"mood\": \"neutral\"|\"friendly\"|\"suspicious\"|\"angry\", \"door_open\": boolean}";
 
     private readonly ILLMClient _client;
     private readonly IResponseParser<NPCResponse> _parser;

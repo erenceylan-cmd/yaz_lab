@@ -43,7 +43,7 @@ public class DialogueUI : MonoBehaviour, IDialogueView
     public void AppendNpcMessage(string npcName, string text, string mood) =>
         AddLine($"{npcName} ({MoodLabel(mood)}): {text}", MoodColor(mood));
 
-    public void AppendSystemMessage(string text) => AddLine($"⚠ {text}", new Color(1f, 0.8f, 0.3f));
+    public void AppendSystemMessage(string text) => AddLine($"! {text}", new Color(1f, 0.8f, 0.3f));
 
     public void SetThinking(bool thinking)
     {

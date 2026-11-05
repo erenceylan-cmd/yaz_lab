@@ -6,7 +6,7 @@ using UnityEngine;
 public class OllamaConfig
 {
     public string baseUrl = "http://localhost:11434";
-    public string model = "llama3.2:3b";
+    public string model = "gemma2:9b";
 
     [Tooltip("Tek bir yanıt için en fazla bekleme süresi (sn). İlk istekte model belleğe yüklendiği için daha uzun sürebilir.")]
     public float timeoutSeconds = 60f;

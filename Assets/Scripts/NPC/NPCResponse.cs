@@ -7,9 +7,11 @@ using System;
 [Serializable]
 public class NPCResponse
 {
+    // Alan sırası bilinçlidir: model önce sözünü ve ruh halini üretir, kapı kararını EN SON verir.
+    // Böylece karar, az önce yazdığı cevapla tutarlı olur.
     public string reply;      // NPC'nin oyuncuya söylediği söz
-    public bool door_open;    // true => kapı açılır (oyun durumu değişir)
     public string mood;       // neutral | friendly | suspicious | angry
+    public bool door_open;    // true => kapı açılır (oyun durumu değişir)
 
     public static readonly string[] AllowedMoods = { "neutral", "friendly", "suspicious", "angry" };
 
@@ -17,7 +19,7 @@ public class NPCResponse
     public const string JsonSchema =
         "{\"type\":\"object\",\"properties\":{" +
         "\"reply\":{\"type\":\"string\"}," +
-        "\"door_open\":{\"type\":\"boolean\"}," +
-        "\"mood\":{\"type\":\"string\",\"enum\":[\"neutral\",\"friendly\",\"suspicious\",\"angry\"]}" +
-        "},\"required\":[\"reply\",\"door_open\",\"mood\"]}";
+        "\"mood\":{\"type\":\"string\",\"enum\":[\"neutral\",\"friendly\",\"suspicious\",\"angry\"]}," +
+        "\"door_open\":{\"type\":\"boolean\"}" +
+        "},\"required\":[\"reply\",\"mood\",\"door_open\"]}";
 }
