@@ -2,7 +2,7 @@
 
 **Ders:** Yazılım Geliştirme Laboratuvarı-I — Proje 1
 **Kurum:** Kocaeli Üniversitesi, Teknoloji Fakültesi, Bilişim Sistemleri Mühendisliği
-**Ekip:** No:231307090 ad:Eren Ceylan
+**Ekip:**  Grup:23 No:231307090 ad:Eren Ceylan
 **Tarih:** Kasım 2026
 **Motor / Dil:** Unity 6.3 LTS (6000.3.26f1), C# — 2D Top-Down
 **Yerel LLM:** Ollama + `gemma2:9b`
@@ -38,7 +38,8 @@ Oyuncu bir kalede mahsur kalmış bir maceracıdır. Yanında küçük bir yard�
 | **Basınç plakası** | Oyuncu üzerinde durduğu sürece tüneldeki kapı açık kalır. Plakadan inince kapı kapanır. |
 | **Zikzak tünel** | 1 kare genişliğinde, iki kez dönen bir tünel. Oyuncu sığmaz, companion sığar. Ortasında plakayla açılan bir kapı vardır. |
 | **Mekanizma odası** | Parmaklığı açan şalter buradadır. |
-| **Avlu** | Sütunlarla dolu ara alan. Kale kapısını Bekçi Garrick korur. |
+| **Şifre odası** | 3×3 numaralı plaka (1–9). Her oyunda rastgele 4 haneli bir şifre üretilir; plakalara doğru sırayla basılınca bulmaca kapısı açılır, yanlış plakada ilerleme sıfırlanır. Şifreyi companion bilir ve **Q** ile istendiğinde sıradaki doğru plakanın üstüne giderek oyuncuya işaret eder. |
+| **Bekçi bölümü** | Kale kapısını Bekçi Garrick korur. |
 | **Çıkış** | Oyuncu bu alana girince oyun biter. |
 
 
@@ -50,13 +51,16 @@ flowchart LR
     P -->|Oyuncu E tuşuna basar| C[Companion tünelden<br/>şaltere yol bulur]
     C --> D[Şalter indirilir<br/>Parmaklık açılır]
     D --> E[Avluya geç]
-    E --> F[Bekçi ile serbest<br/>metin diyaloğu]
+    E --> S[Şifre odası: Q ile companion<br/>sıradaki doğru plakayı gösterir]
+    S -->|yanlış plaka: sıfırla| S
+    S -->|4 doğru plaka| T[Bulmaca kapısı açılır]
+    T --> F[Bekçi ile serbest<br/>metin diyaloğu]
     F -->|door_open = false| F
     F -->|door_open = true| G[Kale kapısı açılır]
     G --> H[Çıkışa yürü<br/>Oyun biter]
 ```
 
-**Kontroller:** `WASD` hareket (plakanın üstünde durarak tünel kapısını açık tutun) · `E` companion'ı şaltere gönder · `F` companion'ı takibe çağır · `T` bekçiyle konuş · `Enter` mesaj gönder · `Esc` konuşmayı kapat · `F9` companion testini çalıştır · `R` (oyun sonunda) yeniden başlat
+**Kontroller:** `WASD` hareket (plakanın üstünde durarak tünel kapısını açık tutun) · `E` companion'ı şaltere gönder · `Q` companion'dan şifre ipucu iste · `F` companion'ı takibe çağır · `T` bekçiyle konuş · `Enter` mesaj gönder · `Esc` konuşmayı kapat · `F9` companion testini çalıştır · `R` (oyun sonunda) yeniden başlat
 
 ![Harita](Docs/Screenshots/harita.png)
 *Oyunun genel görünümü: hücre (sol üst), tünel ve mekanizma odası (sol alt), avlu (orta), çıkış (sağ).*
@@ -94,6 +98,10 @@ stateDiagram-v2
     Interact --> Follow : etkileşim tamamlandı
     Idle --> Follow : F komutu
     GoToTarget --> Follow : F komutu
+    Idle --> Guide : Q komutu
+    Follow --> Guide : Q komutu
+    Guide --> Guide : ipucu değişti (doğru/yanlış plaka)
+    Guide --> Follow : bulmaca çözüldü / F komutu
 ```
 
 | Durum | Davranış |
@@ -102,6 +110,7 @@ stateDiagram-v2
 | **Follow** | Oyuncuya NavMesh üzerinden yol bulur; hedef 0.25 sn'de bir güncellenir (performans). |
 | **GoToTarget** | Hedefe **tam (complete)** bir yol hesaplar ve izler. Yol kapalıysa WaitForPath'e geçer. Takılma tespiti yapar. |
 | **WaitForPath** | Hedefe en yakın ulaşılabilir noktaya gider (örn. kapalı kapının önü), 0.25 sn'de bir yolu yeniden dener. Yol açılınca GoToTarget'a döner, 20 sn sonra görevi bırakır. |
+| **Guide** | `IHintProvider`'ın gösterdiği konuma (sıradaki doğru plaka) gidip orada bekler. Oyuncu doğru veya yanlış plakaya basınca `HintChanged` olayıyla yeni hedefe yol bulur. Bulmaca çözülünce Follow'a döner. |
 | **Interact** | Durur, 0.6 sn bekler, Raycast ile görüş hattını doğrular ve `IInteractable.Interact()` çağırır. |
 
 ### 2.3 GoToTarget karar akışı
@@ -443,17 +452,18 @@ NPC davranışı test edilerek adım adım iyileştirilmiştir. Her adımda göz
 ### 6.1 Klasör yapısı
 ```
 Assets/Scripts/
-├── Core/        IInteractable, GameManager
+├── Core/        IInteractable, IHintProvider, GameManager, CameraFit
 ├── Companion/   CompanionAgent, CompanionStateMachine, RaycastSensor, CompanionDebugLabel
-│   └── States/  ICompanionState, CompanionStateBase, Idle/Follow/GoToTarget/WaitForPath/InteractState
+│   └── States/  ICompanionState, CompanionStateBase, Idle/Follow/GoToTarget/WaitForPath/Interact/GuideState
 ├── LLM/         ILLMClient, OllamaClient, OllamaConfig, LLMRequest, ChatMessage, LLMException
 ├── NPC/         GuardNPC, NPCDialogueController, NPCPersona, NPCResponse,
 │                IResponseParser<T>, NPCResponseParser, DialogueOutcome
 ├── UI/          IDialogueView, DialogueUI
 ├── World/       Lever, Door, PressurePlate, GameEndZone
+├── Puzzle/      SequencePuzzle, NumberPlate
 ├── Player/      CompanionCommandInput   (PlayerController kök klasörde)
 ├── Testing/     CompanionTestRunner
-└── Editor/      LevelBuilder
+└── Editor/      LevelBuilder (haritayı metinden üretir), ArtApplier (görselleri uygular)
 ```
 
 ### 6.2 Sınıf diyagramı
@@ -506,6 +516,19 @@ classDiagram
     CompanionStateBase <|-- GoToTargetState
     CompanionStateBase <|-- InteractState
     CompanionStateBase <|-- WaitForPathState
+    CompanionStateBase <|-- GuideState
+    class IHintProvider {
+        <<interface>>
+        +HasHint
+        +HintPosition
+        +HintChanged
+    }
+    class SequencePuzzle
+    class NumberPlate
+    IHintProvider <|.. SequencePuzzle
+    SequencePuzzle o-- NumberPlate
+    SequencePuzzle ..> Door : çözülünce açar
+    CompanionAgent ..> IHintProvider : ipucu
     CompanionAgent *-- CompanionStateMachine
     CompanionAgent --> RaycastSensor
     CompanionAgent ..> IInteractable : hedef
@@ -553,8 +576,8 @@ classDiagram
 | **S** — Tek sorumluluk | `OllamaClient` yalnızca HTTP, `NPCResponseParser` yalnızca ayrıştırma, `NPCDialogueController` yalnızca diyalog mantığı, `DialogueUI` yalnızca çizim yapar. `CompanionStateMachine` yalnızca geçişi uygular; kurallar durumlardadır. |
 | **O** — Açık/kapalı | Yeni bir companion durumu veya yeni bir `IInteractable` (sandık, buton) mevcut kodu değiştirmeden eklenebilir. |
 | **L** — Liskov | Her `ICompanionState` uygulaması durum makinesinde birbirinin yerine kullanılabilir; `ILLMClient` yerine başka bir yerel sunucu istemcisi takılabilir. |
-| **I** — Arayüz ayrımı | Küçük, odaklı arayüzler: `IInteractable`, `ILLMClient`, `IResponseParser<T>`, `IDialogueView`, `ICompanionState`. |
-| **D** — Bağımlılığın tersine çevrilmesi | `NPCDialogueController` somut `OllamaClient`'a değil `ILLMClient`'a; companion somut `Lever`'a değil `IInteractable`'a bağlıdır. Bağımlılıklar yapıcı (constructor) ile verilir; `GuardNPC` composition root görevi görür. |
+| **I** — Arayüz ayrımı | Küçük, odaklı arayüzler: `IInteractable`, `IHintProvider`, `ILLMClient`, `IResponseParser<T>`, `IDialogueView`, `ICompanionState`. |
+| **D** — Bağımlılığın tersine çevrilmesi | `NPCDialogueController` somut `OllamaClient`'a değil `ILLMClient`'a; companion somut `Lever`'a değil `IInteractable`'a, şifre bulmacasına değil `IHintProvider`'a bağlıdır. Bağımlılıklar yapıcı (constructor) ile verilir; `GuardNPC` composition root görevi görür. |
 
 İki yapay zekâ bileşeni (companion ve NPC) **birbirinden tamamen bağımsızdır**: ortak bir sınıf paylaşmazlar, yalnızca dünya nesneleri (`Door`) üzerinden oyuna etki ederler.
 
@@ -574,7 +597,10 @@ ollama run gemma2:9b "merhaba"   # test; /bye ile çıkılır
 ```
 Ollama arka planda çalışırken (`http://localhost:11434`) oyun modele otomatik bağlanır. Model veya adres `Guard` objesindeki **Guard NPC → Ollama** alanından değiştirilebilir.
 
-### 7.3 Oyunu çalıştırma
+### 7.3 Görseller
+Tüm görseller (çimen, taş duvar, oyuncu, tilki companion, bekçi, kapı, plaka, şalter) bu proje için Python (Pillow) ile **üretilmiş 32×32 pixel art** görsellerdir; harici bir asset paketi kullanılmamıştır. `Yazlab → Görselleri Uygula` menüsü içe aktarma ayarlarını yapar ve görselleri sahneye atar.
+
+### 7.4 Oyunu çalıştırma
 - **Build:** `Build/` klasöründeki `.exe` dosyasını çalıştırın.
 - **Editör:** Projeyi Unity Hub ile açın, `Assets/Scenes/SampleScene` sahnesini açıp Play'e basın.
 - Harita `Yazlab → Haritayı Oluştur` menüsüyle yeniden üretilebilir (ardından Navigation → Bake).
@@ -597,7 +623,7 @@ Ollama arka planda çalışırken (`http://localhost:11434`) oyun modele otomati
 - İlk istekte modelin belleğe yüklenmesi nedeniyle gecikme uzundur.
 - Parola system prompt içinde yer aldığından, ısrarlı ve yaratıcı prompt injection girişimleri teorik olarak modeli kandırabilir.
 - Diyalog arayüzü IMGUI ile çizilmiştir; görsel olarak sadedir.
-- Companion yalnızca tek tip görev (şalter) için test edilmiştir.
+- Otomatik companion testi (5.1) şalter görevini kapsar; şifre bulmacasındaki rehberlik (Guide) elle test edilmiştir.
 
 ### 8.3 Olası geliştirmeler
 - **ML-Agents** ile companion'ın pekiştirmeli öğrenmeyle eğitilmesi ve NavMesh ile karşılaştırılması.

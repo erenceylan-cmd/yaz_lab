@@ -17,7 +17,7 @@ NavMeshProjectSettings:
     cost: 1
   - name: CastleGate
     cost: 1
-  - name: 
+  - name: PuzzleGate
     cost: 1
   - name: 
     cost: 1
