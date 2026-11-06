@@ -27,6 +27,7 @@ public class CompanionAgent : MonoBehaviour
     public RaycastSensor Sensor { get; private set; }
     public CompanionStateMachine StateMachine { get; private set; }
     public IInteractable CurrentTarget { get; private set; }
+    public IHintProvider HintProvider { get; private set; }
 
     public Transform Player => player;
     public float FollowStartDistance => followStartDistance;
@@ -41,6 +42,7 @@ public class CompanionAgent : MonoBehaviour
     public GoToTargetState GoToTarget { get; private set; }
     public InteractState Interact { get; private set; }
     public WaitForPathState WaitForPath { get; private set; }
+    public GuideState Guide { get; private set; }
 
     private void Awake()
     {
@@ -59,6 +61,7 @@ public class CompanionAgent : MonoBehaviour
         GoToTarget = new GoToTargetState(this);
         Interact = new InteractState(this);
         WaitForPath = new WaitForPathState(this);
+        Guide = new GuideState(this);
     }
 
     private void Start()
@@ -97,9 +100,22 @@ public class CompanionAgent : MonoBehaviour
         return StateMachine.Current == GoToTarget || StateMachine.Current == WaitForPath;
     }
 
+    /// <summary>Companion'a bir ipucu kaynağını (bulmaca) gösterme görevi verir.</summary>
+    public bool TryCommandGuide(IHintProvider provider)
+    {
+        if (provider == null || !provider.HasHint) return false;
+
+        ClearTarget();
+        if (StateMachine.Current == Guide) StateMachine.ChangeState(Idle);
+        HintProvider = provider;
+        StateMachine.ChangeState(Guide);
+        return true;
+    }
+
     public void CommandFollow()
     {
         ClearTarget();
+        ClearHint();
         StateMachine.ChangeState(Follow);
     }
 
@@ -142,6 +158,7 @@ public class CompanionAgent : MonoBehaviour
     public float DistanceToPlayer() => Vector2.Distance(transform.position, player.position);
 
     public void ClearTarget() => CurrentTarget = null;
+    public void ClearHint() => HintProvider = null;
 
     private void SnapToNavMesh()
     {

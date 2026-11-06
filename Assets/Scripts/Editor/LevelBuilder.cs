@@ -11,6 +11,7 @@ using UnityEngine.Tilemaps;
 ///   P  oyuncu         C  companion        L  şalter
 ///   g  portcullis (GateDoor)              k  kale kapısı (GuardDoor)
 ///   t  tünel kapısı (TunnelDoor)          p  basınç plakası (PressurePlate)
+///   q  bulmaca kapısı (PuzzleDoor)        1-9 numaralı plakalar (otomatik oluşturulur)
 ///   N  bekçi (Guard)  E  çıkış alanı (EndZone)
 /// Ctrl+Z ile geri alınabilir. Sonrasında Navigation → Bake yapılmalıdır.
 /// </summary>
@@ -18,20 +19,20 @@ public static class LevelBuilder
 {
     private const string Layout = @"
 ################################
-#........#...........###########
-#........#...........###########
-#..P.....#...##......###########
-#....C...g...##......###########
-#........g...........#.........#
-#......p.#.........N.#.....EEE.#
-#........#...........k.....EEE.#
-#.########...........k.....EEE.#
-#.t....###...........#.....EEE.#
-######.###...##......#.........#
-#........#...##..##..###########
-#........#.......##..###########
-#...L....#...........###########
-#........#...........###########
+#........#......#....###########
+#........#......q....###########
+#..P.....#......q....###########
+#....C...g......#....###########
+#........g......#....#.........#
+#......p.#.1.2.3#..N.#.....EEE.#
+#........#......#....k.....EEE.#
+#.########......#....k.....EEE.#
+#.t....###.4.5.6#....#.....EEE.#
+######.###......#....#.........#
+#........#......#....###########
+#........#.7.8.9#....###########
+#...L....#......#....###########
+#........#......#....###########
 ################################
 ";
 
@@ -87,6 +88,8 @@ public static class LevelBuilder
         PlaceArea("GuardDoor", marks, 'k');
         PlaceArea("TunnelDoor", marks, 't');
         PlacePoint("PressurePlate", marks, 'p', 0.8f);
+        PlaceArea("PuzzleDoor", marks, 'q');
+        PlaceNumberPlates(marks);
         PlaceArea("EndZone", marks, 'E');
 
         Camera cam = Camera.main;
@@ -131,6 +134,49 @@ public static class LevelBuilder
         Undo.RecordObject(go.transform, "Yerleştir");
         go.transform.SetPositionAndRotation((min + max) / 2f, Quaternion.identity);
         go.transform.localScale = new Vector3(max.x - min.x + 1f, max.y - min.y + 1f, 1f);
+    }
+
+    /// <summary>1-9 işaretli hücrelere numaralı plakaları koyar; yoksa oluşturur. Bulmaca objesini de ekler.</summary>
+    private static void PlaceNumberPlates(Dictionary<char, List<Vector3>> marks)
+    {
+        Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Art/Square.png");
+        if (sprite == null)
+            foreach (string guid in AssetDatabase.FindAssets("Square t:Sprite"))
+                sprite = sprite != null ? sprite : AssetDatabase.LoadAssetAtPath<Sprite>(AssetDatabase.GUIDToAssetPath(guid));
+
+        for (char d = '1'; d <= '9'; d++)
+        {
+            if (!marks.TryGetValue(d, out var points)) continue;
+
+            string objectName = "Plate" + d;
+            GameObject go = GameObject.Find(objectName);
+            if (go == null)
+            {
+                go = new GameObject(objectName);
+                Undo.RegisterCreatedObjectUndo(go, "Plaka oluştur");
+                var sr = go.AddComponent<SpriteRenderer>();
+                sr.sprite = sprite;
+                sr.sortingOrder = 1;
+                var plate = go.AddComponent<NumberPlate>();
+                var so = new SerializedObject(plate);
+                so.FindProperty("number").intValue = d - '0';
+                so.ApplyModifiedPropertiesWithoutUndo();
+            }
+            else
+            {
+                Undo.RecordObject(go.transform, "Yerleştir");
+            }
+
+            go.transform.SetPositionAndRotation(points[0], Quaternion.identity);
+            go.transform.localScale = new Vector3(0.7f, 0.7f, 1f);
+        }
+
+        if (GameObject.Find("SequencePuzzle") == null && marks.ContainsKey('1'))
+        {
+            var puzzle = new GameObject("SequencePuzzle");
+            Undo.RegisterCreatedObjectUndo(puzzle, "Bulmaca oluştur");
+            puzzle.AddComponent<SequencePuzzle>();
+        }
     }
 
     private static Tilemap FindTilemap(string name)
